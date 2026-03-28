@@ -1,87 +1,54 @@
 from flask import Flask, request
-from werkzeug.utils import secure_filename
-import subprocess
-import os
+from config import SAVE_DIR, PORT, HOST
+from file_handler import FileHandler
+from clipboard_manager import ClipboardManager
 
 app = Flask(__name__)
+file_handler = FileHandler(SAVE_DIR)
+clipboard = ClipboardManager()
 
-SAVE_DIR = os.path.expanduser('~/Downloads/iphone')
-os.makedirs(SAVE_DIR, exist_ok=True)
 
 @app.route('/sync', methods=['POST'])
 def sync_da_iphone():
-    print("\n--- NUOVA RICHIESTA RICEVUTA ---")
-    
-    # CASO 1: FILE / IMMAGINE
+    """Sincronizza file o testo da iPhone alla clipboard"""
+    # CASO 1: FILE / IMMAGINE / TESTO COME FILE
     if 'file' in request.files:
         f = request.files['file']
-        print(f"[DEBUG] Ricevuto file: {f.filename}")
+        filepath = file_handler.process_file(f)
+        if not filepath:
+            return "Errore salvataggio file", 500
         
-        if f.filename:
-            filename = secure_filename(f.filename)
-            filepath = os.path.join(SAVE_DIR, filename)
-            f.save(filepath)
-            print(f"[DEBUG] File salvato in: {filepath} ({os.path.getsize(filepath)} bytes)")
-            
-            # Se è HEIC lo convertiamo in JPG (lasciamo questo comodo fallback)
-            if filename.lower().endswith('.heic'):
-                jpg_filepath = os.path.join(SAVE_DIR, filename.rsplit('.', 1)[0] + '.jpg')
-                try:
-                    subprocess.run(['heif-convert', filepath, jpg_filepath], capture_output=True, check=True)
-                    os.remove(filepath)
-                    filepath = jpg_filepath
-                    print("[DEBUG] Convertito HEIC in JPG")
-                except Exception as e:
-                    print(f"[ERRORE] Conversione HEIC: {e}")
-                    return "Errore HEIC", 500
+        # Se è un file di testo, copia il contenuto
+        text_content = file_handler.get_file_content_if_text(filepath)
+        if text_content is not None:
+            if clipboard.copy_text(text_content):
+                return "OK", 200
+            else:
+                return "Errore", 500
+        
+        # Altrimenti è un file binario/immagine
+        if clipboard.copy_file(filepath):
+            return "OK", 200
+        else:
+            return "Errore", 500
 
-            # --- LA NUOVA MAGIA (Zero lag, zero freeze) ---
-            try:
-                # Otteniamo il percorso assoluto formattato come URI
-                file_uri = f"file://{os.path.abspath(filepath)}"
-                
-                # Diciamo a CopyQ di comportarsi come un File Manager
-                # Passiamo text/uri-list per le GUI, e text/plain per il terminale
-                subprocess.run([
-                    'copyq', 
-                    'write', 
-                    'text/uri-list', file_uri, 
-                    'text/plain', filepath
-                ], check=True)
-                
-                subprocess.run(['copyq', 'select', '0'], check=True)
-                
-                print("[SUCCESS] URI Immagine copiato in CopyQ! (0 lag)")
-                return "Immagine copiata", 200
-            except Exception as e:
-                print(f"[ERRORE] Scrittura CopyQ: {e}")
-                return "Errore CopyQ", 500
-
-    # CASO 2: TESTO
+    # CASO 2: TESTO COME RAW DATA
     testo_ricevuto = request.data.decode('utf-8')
-    print(f"[DEBUG] Testo ricevuto (Lunghezza: {len(testo_ricevuto)} caratteri)")
-    
     if testo_ricevuto:
-        try:
-            subprocess.run(['copyq', 'add', testo_ricevuto], capture_output=True, check=True)
-            subprocess.run(['copyq', 'copy', testo_ricevuto], capture_output=True, check=True)
-            print("[SUCCESS] Testo copiato in CopyQ!")
-            return "Testo copiato", 200
-        except Exception as e:
-            print(f"[ERRORE] Aggiunta testo CopyQ: {e}")
-            return "Errore CopyQ", 500
-            
-    print("[WARNING] Nessun dato valido ricevuto!")
+        if clipboard.copy_text(testo_ricevuto):
+            return "OK", 200
+        else:
+            return "Errore", 500
+    
     return "Nessun dato", 400
+
 
 @app.route('/get', methods=['GET'])
 def sync_verso_iphone():
-    try:
-        result = subprocess.run(['copyq', 'clipboard'], capture_output=True, text=True, check=True)
-        return result.stdout, 200
-    except:
-        return "ERR", 500
+    """Recupera il contenuto della clipboard"""
+    content = clipboard.get_clipboard()
+    return content if content else "", 200
+
 
 if __name__ == '__main__':
-    print("🚀 Server in ascolto sulla porta 5000...")
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host=HOST, port=PORT)
