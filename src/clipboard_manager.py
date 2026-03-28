@@ -3,11 +3,11 @@ import os
 
 
 class ClipboardManager:
-    """Gestisce le operazioni con la clipboard tramite CopyQ"""
+    """Handles read/write operations with system clipboard via CopyQ"""
 
     @staticmethod
     def copy_text(text: str) -> bool:
-        """Copia testo nella clipboard"""
+        """Write plain text to clipboard"""
         try:
             subprocess.run(['copyq', 'add', text], capture_output=True, check=True)
             subprocess.run(['copyq', 'copy', text], capture_output=True, check=True)
@@ -17,7 +17,7 @@ class ClipboardManager:
 
     @staticmethod
     def copy_file(filepath: str) -> bool:
-        """Copia file nella clipboard come URI"""
+        """Write file path as URI to clipboard"""
         try:
             file_uri = f"file://{os.path.abspath(filepath)}"
             subprocess.run([
@@ -32,11 +32,18 @@ class ClipboardManager:
             return False
 
     @staticmethod
-    def get_clipboard() -> str:
-        """Legge il contenuto della clipboard"""
+    def read_image() -> bytes:
+        """Try to read PNG image from clipboard. Returns bytes or None."""
         try:
-            result = subprocess.run(['copyq', 'clipboard'], 
-                                    capture_output=True, text=True, check=True)
-            return result.stdout
-        except Exception:
+            return subprocess.check_output(['copyq', 'read', 'image/png'])
+        except subprocess.CalledProcessError:
+            return None
+
+    @staticmethod
+    def read_text() -> str:
+        """Read plain text from clipboard. Returns empty string if unavailable."""
+        try:
+            content_bytes = subprocess.check_output(['copyq', 'read', 'text/plain'])
+            return content_bytes.decode('utf-8').strip()
+        except subprocess.CalledProcessError:
             return ""

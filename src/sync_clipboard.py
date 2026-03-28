@@ -2,6 +2,7 @@ from flask import Flask, request
 from config import SAVE_DIR, PORT, HOST
 from file_handler import FileHandler
 from clipboard_manager import ClipboardManager
+from response_handler import ResponseHandler
 
 app = Flask(__name__)
 file_handler = FileHandler(SAVE_DIR)
@@ -10,44 +11,54 @@ clipboard = ClipboardManager()
 
 @app.route('/sync', methods=['POST'])
 def sync_da_iphone():
-    """Sincronizza file o testo da iPhone alla clipboard"""
-    # CASO 1: FILE / IMMAGINE / TESTO COME FILE
+    """Receive file or text from iPhone and sync to clipboard"""
+    # Handle file upload
     if 'file' in request.files:
         f = request.files['file']
         filepath = file_handler.process_file(f)
         if not filepath:
-            return "Errore salvataggio file", 500
+            return "Error", 500
         
-        # Se è un file di testo, copia il contenuto
+        # If it's a text file, extract and copy content
         text_content = file_handler.get_file_content_if_text(filepath)
         if text_content is not None:
-            if clipboard.copy_text(text_content):
-                return "OK", 200
-            else:
-                return "Errore", 500
+            return "OK", 200 if clipboard.copy_text(text_content) else ("Error", 500)
         
-        # Altrimenti è un file binario/immagine
-        if clipboard.copy_file(filepath):
-            return "OK", 200
-        else:
-            return "Errore", 500
+        # Otherwise it's a binary file (image, PDF, etc)
+        return "OK", 200 if clipboard.copy_file(filepath) else ("Error", 500)
 
-    # CASO 2: TESTO COME RAW DATA
-    testo_ricevuto = request.data.decode('utf-8')
-    if testo_ricevuto:
-        if clipboard.copy_text(testo_ricevuto):
-            return "OK", 200
-        else:
-            return "Errore", 500
+    # Handle raw text data
+    try:
+        text_data = request.data.decode('utf-8')
+    except Exception:
+        return "Error", 400
     
-    return "Nessun dato", 400
+    if text_data:
+        return "OK", 200 if clipboard.copy_text(text_data) else ("Error", 500)
+    
+    return "No data", 400
 
 
 @app.route('/get', methods=['GET'])
 def sync_verso_iphone():
-    """Recupera il contenuto della clipboard"""
-    content = clipboard.get_clipboard()
-    return content if content else "", 200
+    """Send clipboard content to iPhone (image, file, or text)"""
+    # Try to read image first - most direct path
+    image_data = clipboard.read_image()
+    if image_data:
+        return ResponseHandler.send_image(image_data)
+
+    # Fall back to text content
+    text_content = clipboard.read_text()
+    if not text_content:
+        return "", 200
+
+    # Check if text is a file path and serve the actual file
+    file_response = ResponseHandler.send_file_if_exists(text_content)
+    if file_response:
+        return file_response
+
+    # It's just plain text
+    return ResponseHandler.send_text(text_content)
 
 
 if __name__ == '__main__':
