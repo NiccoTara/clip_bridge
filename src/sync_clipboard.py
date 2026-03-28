@@ -1,15 +1,28 @@
+import os
 from flask import Flask, request
-from config import SAVE_DIR, PORT, HOST
+import flask.cli
+import logging
+from config import SAVE_DIR, PORT, HOST, TOKEN_FILE
 from file_handler import FileHandler
 from clipboard_manager import ClipboardManager
 from response_handler import ResponseHandler
+from auth import get_or_create_token, validate_request
+from network_utils import get_local_url
+from qr_generator import print_startup_qr
+
+flask.cli.show_server_banner = lambda *args: None
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 app = Flask(__name__)
 file_handler = FileHandler(SAVE_DIR)
 clipboard = ClipboardManager()
+is_first_run = not os.path.exists(TOKEN_FILE)
+TOKEN = get_or_create_token(TOKEN_FILE)
 
-
-@app.route('/sync', methods=['POST'])
+@app.before_request
+def enforce_security():
+    validate_request(request, TOKEN)
+@app.route('/post', methods=['POST'])
 def sync_da_iphone():
     """Receive file or text from iPhone and sync to clipboard"""
     # Handle file upload
@@ -62,4 +75,22 @@ def sync_verso_iphone():
 
 
 if __name__ == '__main__':
+
+    url = get_local_url(PORT)
+    
+    print_startup_qr(url, TOKEN)
+
+    print("\n" + "═"*65)
+    print("🎉 WELCOME TO CLIP BRIDGE!")
+    print("═"*65)
+    print("To permanently connect your phone, follow 3 simple steps:")
+    print("  1. Open the Shortcuts app on your iPhone.")
+    print("  2. Run the 'Receive from PC' (GET) or 'Send to PC' (POST) shortcut.")
+    print("  3. The camera will open automatically: scan the QR Code.")
+    print("\nDone! Your clipboards will be linked and you'll NEVER need to")
+    print("scan this code again.")
+    print("═"*65 + "\n")
+
+    
+    # Run server
     app.run(host=HOST, port=PORT)

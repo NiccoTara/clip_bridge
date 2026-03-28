@@ -3,6 +3,7 @@ import os
 # Server configuration
 HOST = '0.0.0.0'
 PORT = 5000
+TOKEN_FILE = 'clipbridge_token.txt'
 
 # Directory where downloaded files are saved
 SAVE_DIR = os.path.expanduser('~/Downloads/iphone')
