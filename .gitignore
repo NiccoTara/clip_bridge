@@ -38,6 +38,5 @@ Thumbs.db
 
 # --- Installer (PyInstaller) ---
 # These files will be created when building the executable
-*.spec
 dist/
 build/

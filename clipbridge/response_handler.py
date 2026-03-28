@@ -13,8 +13,8 @@ class ResponseHandler:
 
     @staticmethod
     def send_file_if_exists(path: str):
-        """Send file if path exists, otherwise return None"""
-        # Remove file:// prefix and decode URL-encoded characters
+        """Send a file if it exists at the given path."""
+        # Remove file:// prefix and decode URL-encoded paths
         cleaned_path = path.replace('file://', '', 1).strip()
         filepath = unquote(cleaned_path)
 
@@ -28,5 +28,5 @@ class ResponseHandler:
 
     @staticmethod
     def send_text(text: str):
-        """Send plain text content"""
+        """Send text content."""
         return text, 200

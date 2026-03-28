@@ -3,18 +3,19 @@ import secrets
 from flask import abort
 
 def get_or_create_token(filepath):
-    """Legge il token segreto o ne crea uno nuovo se non esiste."""
+    """Load existing token or generate a new one if it doesn't exist."""
     if os.path.exists(filepath):
         with open(filepath, 'r') as f:
             return f.read().strip()
     else:
-        new_token = secrets.token_hex(8) # Genera password di 16 caratteri
+        # Generate a random 16-char hex token
+        new_token = secrets.token_hex(8)
         with open(filepath, 'w') as f:
             f.write(new_token)
         return new_token
 
 def validate_request(request, valid_token):
-    """Controlla se l'iPhone ha fornito il token giusto."""
+    """Verify the client provided the correct token."""
     client_token = request.args.get('token')
     if client_token != valid_token:
-        abort(403) # 403 Forbidden: Accesso negato!
+        abort(403)  # Deny access
