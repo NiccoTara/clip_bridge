@@ -13,42 +13,54 @@ Sync your iPhone clipboard with your Linux PC over Wi-Fi. Seamlessly copy text, 
 
 ## Installation 🚀
 
-### Quick Start (Recommended)
+Use one of these two options.
 
-1. **Download the latest release** from [GitHub Releases](https://github.com/NiccoTara/clip_bridge/releases)
+### Option A — Prebuilt executable (when available in Releases)
 
-2. **Extract and install:**
+1. Open [GitHub Releases](https://github.com/NiccoTara/clip_bridge/releases)
+2. Download `clipbridge-linux-x64.tar.gz` (if present)
+3. Run:
    ```bash
+   cd ~/Downloads
    tar -xzf clipbridge-linux-x64.tar.gz
    cd clipbridge-linux-x64
+   chmod +x install.sh
    sudo ./install.sh
-   ```
-
-3. **Start ClipBridge:**
-   ```bash
    clipbridge
    ```
 
-4. **On your iPhone:**
-   - Open the Shortcuts app
-   - Create shortcuts using the endpoints shown in the terminal
-   - Scan the QR code when prompted
-   - Done! Your clipboards are now linked
+### Option B — Only tag source is available (`.zip` / `.tar.gz`)
 
-### Build from Source (for developers)
-
-If you want to build your own executable:
+If in the release page you only see **Source code (zip)** and **Source code (tar.gz)**, do this:
 
 ```bash
-git clone https://github.com/NiccoTara/clip_bridge
-cd clip_bridge
+cd ~/Downloads
+# If you downloaded the source tar.gz from Tags:
+tar -xzf clip_bridge-*.tar.gz
+cd clip_bridge-*
+
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 pip install pyinstaller
 pyinstaller clipbridge.spec
+chmod +x install.sh
 sudo ./install.sh
+clipbridge
 ```
+
+### First-time setup on iPhone
+
+- Keep `clipbridge` running on your PC
+- Open Shortcuts on iPhone
+- Import your shortcuts (links below)
+- Run one shortcut and scan the QR code once
+- From then on, token auth is already configured
+
+## iPhone Shortcut Links (paste your iCloud links here)
+
+- Send to PC (POST): `PASTE_ICLOUD_LINK_HERE`
+- Receive from PC (GET): `PASTE_ICLOUD_LINK_HERE`
 
 ## Requirements
 
