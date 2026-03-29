@@ -24,7 +24,7 @@ echo -e "${YELLOW}→${NC} Checking for CopyQ clipboard manager..."
 if ! command -v copyq &> /dev/null; then
     echo -e "${YELLOW}✗ CopyQ not found. Installing...${NC}"
     apt-get update
-    apt-get install -y copyq-server copyq-noX11
+    apt-get install -y copyq
     if command -v copyq &> /dev/null; then
         echo -e "${GREEN}✓ CopyQ installed successfully${NC}"
     else
