@@ -1,127 +1,161 @@
-# ClipBridge 🌉
+# ClipBridge
 
-Sync your iPhone clipboard with your Linux PC over Wi-Fi. Seamlessly copy text, files, and images between devices without touching a cable.
+Copy on your iPhone, paste on your Linux PC. And vice versa. Over Wi-Fi, no cables, no cloud.
 
-## Features ✨
+It works through Apple Shortcuts and a tiny server that runs on your PC. You pair the two devices once with a QR code, and from that point on it just works — every time you run a shortcut on your phone, the clipboard syncs instantly.
 
-- 📱 Real-time clipboard sync between iPhone and Linux
-- 🔐 Secure token-based authentication
-- 📤 Send text, files, and images from iPhone to PC
-- 📥 Get clipboard content from PC to iPhone
-- 🚀 Runs as a background daemon
-- 🔄 Requires QR code scan only once
+## What you need
 
-## Installation 🚀
+- A Linux PC (Ubuntu/Debian tested, others should work)
+- An iPhone with the Shortcuts app
+- Both devices on the same Wi-Fi network
 
-Use one of these two options.
-
-### Option A — Prebuilt executable (when available in Releases)
-
-1. Open [GitHub Releases](https://github.com/NiccoTara/clip_bridge/releases)
-2. Download `clipbridge-linux-x64.tar.gz` (if present)
-3. Run:
-   ```bash
-   cd ~/Downloads
-   tar -xzf clipbridge-linux-x64.tar.gz
-   cd clipbridge-linux-x64
-   chmod +x install.sh
-   sudo ./install.sh
-   clipbridge
-   ```
-
-### Option B — Only tag source is available (`.zip` / `.tar.gz`)
-
-If in the release page you only see **Source code (zip)** and **Source code (tar.gz)**, do this:
-
-```bash
-cd ~/Downloads
-# If you downloaded the source tar.gz from Tags:
-tar -xzf clip_bridge-*.tar.gz
-cd clip_bridge-*
-
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-pip install pyinstaller
-pyinstaller clipbridge.spec
-chmod +x install.sh
-sudo ./install.sh
-clipbridge
-```
-
-### First-time setup on iPhone
-
-- Keep `clipbridge` running on your PC
-- Open Shortcuts on iPhone
-- Import your shortcuts (links below)
-- Run one shortcut and scan the QR code once
-- From then on, token auth is already configured
-
-## iPhone Shortcut Links (paste your iCloud links here)
-
-- Send to PC (POST): `PASTE_ICLOUD_LINK_HERE`
-- Receive from PC (GET): `PASTE_ICLOUD_LINK_HERE`
-
-## Requirements
-
-- **Linux** (Ubuntu/Debian recommended)
-- **CopyQ** - Will be installed automatically by the installer
-- **iPhone** with Shortcuts app
-
-## How It Works
-
-1. **First Run:** ClipBridge generates a random token and displays a QR code
-2. **iOS Shortcut:** You create shortcuts on your iPhone that:
-   - Send clipboard content to the PC via HTTP POST
-   - Retrieve clipboard content from the PC via HTTP GET
-3. **Running App:** ClipBridge listens for requests while it is running
-4. **Token Auth:** Each request includes the token for security
-
-## Architecture
-
-```
-iPhone (Shortcuts) ←→ [Wi-Fi] ←→ Linux PC (ClipBridge)
-                        ↓
-                    Flask Server
-                        ↓
-              CopyQ (System Clipboard)
-```
-
-## Configuration
-
-Configuration files are stored in `~/.config/clipbridge/`:
-- `clipbridge_token.txt` - Your unique auth token
-- Downloaded files go to `~/Downloads/ClipBridge/`
-
-## Troubleshooting
-
-### CopyQ not found
-Make sure CopyQ is running and accessible:
-```bash
-copyq --help
-```
-
-### Token reset
-To reset your token and get a new QR code:
-```bash
-rm ~/.config/clipbridge/clipbridge_token.txt
-clipbridge  # Will generate new token
-```
-
-### Check logs
-If running in background with `nohup`:
-```bash
-tail -f /tmp/clipbridge.log
-```
-
-## License
-
-MIT - See [LICENSE](LICENSE) file
-
-## Contributing
-
-Found a bug? Have a feature idea? Open an issue or submit a pull request!
+That's it. CopyQ (the clipboard backend) gets installed automatically.
 
 ---
 
-Made with ❤️ by [Niccolò](https://github.com/NiccoTara)
+## Setup
+
+Two things to do: install ClipBridge on your PC, then add the shortcuts on your iPhone.
+
+### On your PC
+
+Download the latest release from [GitHub Releases](https://github.com/NiccoTara/clip_bridge/releases) and run:
+
+```bash
+tar -xzf clipbridge-linux-x64.tar.gz
+cd clipbridge-linux-x64
+sudo ./install.sh
+```
+
+The installer puts the binary in `/usr/local/bin/` and sets up autostart, so ClipBridge will launch automatically every time you log in.
+
+Now start it for the first time:
+
+```bash
+clipbridge
+```
+
+You'll see a QR code in the terminal. **Keep it open** — you'll need it in a second.
+
+### On your iPhone
+
+1. Install these two shortcuts:
+   - [Send to PC](https://www.icloud.com/shortcuts/22a58d38ae064287b900dc7b0d62820e) — copies your iPhone clipboard to the PC
+   - [Receive from PC](https://www.icloud.com/shortcuts/509fb40a8a314146b082fbe267002a84) — copies the PC clipboard to your iPhone
+
+   > If the iCloud links don't work for you, the `.shortcut` files are also available in the [`ios/`](ios/) folder of this repo. You can AirDrop them to your phone or open them from the Files app.
+
+2. Open either shortcut and run it. The camera will open — **scan the QR code** on your PC's terminal.
+
+3. Done. The shortcuts now know your PC's address and auth token. You won't need to scan again, even after restarting.
+
+---
+
+## Daily use
+
+Once paired, it's simple:
+
+- **iPhone → PC:** Copy something on your phone, run the "Send to PC" shortcut. It lands in your PC clipboard instantly.
+- **PC → iPhone:** Copy something on your PC, run the "Receive from PC" shortcut on your phone. Done.
+
+Works with text, images, files, URLs — anything you can copy.
+
+> **Tip:** Add the shortcuts to your home screen or assign them to the Action Button / Back Tap for one-tap sync.
+
+---
+
+## How it works under the hood
+
+```
+iPhone (Shortcuts)  ←→  Wi-Fi  ←→  Linux PC (ClipBridge)
+                                         ↓
+                                    Flask server on port 5000
+                                         ↓
+                                  CopyQ (system clipboard)
+```
+
+ClipBridge is a small Flask server that exposes two endpoints:
+
+- `POST /post` — receives text/files from the iPhone and writes them to the system clipboard via CopyQ
+- `GET /get` — reads the current clipboard and sends it back to the iPhone
+
+Every request must include the auth token (embedded in the shortcut URL after the QR scan). No token, no access.
+
+---
+
+## Files and paths
+
+| What | Where |
+|---|---|
+| Auth token | `~/.config/clipbridge/clipbridge_token.txt` |
+| Downloaded files | `~/Downloads/ClipBridge/` |
+| Autostart entry | `~/.config/autostart/clipbridge.desktop` |
+| Binary (after install) | `/usr/local/bin/clipbridge` |
+
+---
+
+## Troubleshooting
+
+**Shortcut says it can't connect**
+- Make sure ClipBridge is running on your PC (`clipbridge` in a terminal)
+- Check that both devices are on the same Wi-Fi network
+- Your PC's firewall might be blocking port 5000
+
+**CopyQ errors**
+- CopyQ must be running for clipboard access to work
+- Test it: `copyq read 0` should print your last copied text
+
+**Want to re-pair? (new QR code)**
+```bash
+rm ~/.config/clipbridge/clipbridge_token.txt
+clipbridge
+```
+This generates a fresh token. You'll need to scan the QR code again from your phone.
+
+**Disable autostart**
+```bash
+rm ~/.config/autostart/clipbridge.desktop
+```
+
+---
+
+## Uninstall
+
+If you want to remove everything cleanly:
+
+### On your PC
+
+```bash
+# Remove the binary
+sudo rm /usr/local/bin/clipbridge
+
+# Remove autostart
+rm ~/.config/autostart/clipbridge.desktop
+
+# Remove config and auth token
+rm -rf ~/.config/clipbridge/
+
+# Remove downloaded files (optional)
+rm -rf ~/Downloads/ClipBridge/
+```
+
+This does **not** uninstall CopyQ — you might be using it for other things. If you want to remove it too: `sudo apt remove copyq`.
+
+### On your iPhone
+
+1. Open the **Shortcuts** app
+2. Swipe left on "Send to PC" and "Receive from PC" → tap **Delete**
+3. Open the **Files** app and navigate to `On My iPhone` → `Shortcuts`
+4. Delete the `ClipBridge` file config (if present) to remove any stored auth tokens and server addresses
+5. That's it — all ClipBridge data is now removed from your phone
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+Made by [Niccolò](https://github.com/NiccoTara)

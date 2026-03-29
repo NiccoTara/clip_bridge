@@ -59,19 +59,41 @@ chmod +x /usr/local/bin/clipbridge
 echo -e "${GREEN}✓ Binary installed to /usr/local/bin/clipbridge${NC}"
 
 # Create config directory if needed
-CONFIG_DIR="$HOME/.config/clipbridge"
+REAL_USER="${SUDO_USER:-$USER}"
+REAL_HOME=$(eval echo ~"$REAL_USER")
+CONFIG_DIR="${REAL_HOME}/.config/clipbridge"
 mkdir -p "$CONFIG_DIR"
 chmod 700 "$CONFIG_DIR"
+chown "${REAL_USER}:${REAL_USER}" "$CONFIG_DIR"
 
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║   Installation Complete! 🎉        ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════╝${NC}"
 echo ""
+# --- Set up autostart for the current (real) user ---
+AUTOSTART_DIR="${REAL_HOME}/.config/autostart"
+mkdir -p "$AUTOSTART_DIR"
+
+cat > "${AUTOSTART_DIR}/clipbridge.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=ClipBridge
+Comment=Sync clipboard between iPhone and Linux over Wi-Fi
+Exec=/usr/local/bin/clipbridge
+Terminal=false
+X-GNOME-Autostart-enabled=true
+StartupNotify=false
+EOF
+
+chown "${REAL_USER}:${REAL_USER}" "${AUTOSTART_DIR}/clipbridge.desktop"
+echo -e "${GREEN}✓ Autostart enabled — ClipBridge will start automatically at login${NC}"
+
+echo ""
 echo "Next steps:"
 echo "  1. Start ClipBridge: clipbridge"
 echo "  2. Scan the QR code on your iPhone"
-echo "  3. Keep the terminal open while using it"
-echo "     (or run in background: nohup clipbridge >/tmp/clipbridge.log 2>&1 & )"
+echo "  3. ClipBridge will auto-start on every login from now on."
 echo ""
+echo "To disable autostart: rm ~/.config/autostart/clipbridge.desktop"
 echo "For more info: https://github.com/NiccoTara/clip_bridge"

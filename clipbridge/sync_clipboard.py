@@ -36,10 +36,10 @@ def sync_da_iphone():
         # For text files, read the content and copy it
         text_content = file_handler.get_file_content_if_text(filepath)
         if text_content is not None:
-            return "OK", 200 if clipboard.copy_text(text_content) else ("Error", 500)
+            return ("OK", 200) if clipboard.copy_text(text_content) else ("Error", 500)
         
         # For binary files (images, PDFs, etc), copy the file path
-        return "OK", 200 if clipboard.copy_file(filepath) else ("Error", 500)
+        return ("OK", 200) if clipboard.copy_file(filepath) else ("Error", 500)
 
     # Handle plain text submissions
     try:
@@ -48,7 +48,7 @@ def sync_da_iphone():
         return "Error", 400
     
     if text_data:
-        return "OK", 200 if clipboard.copy_text(text_data) else ("Error", 500)
+        return ("OK", 200) if clipboard.copy_text(text_data) else ("Error", 500)
     
     return "No data", 400
 
@@ -83,12 +83,15 @@ def main():
     print("\n" + "═"*65)
     print("🎉 WELCOME TO CLIP BRIDGE!")
     print("═"*65)
-    print("To permanently connect your phone, follow 3 simple steps:")
-    print("  1. Open the Shortcuts app on your iPhone.")
-    print("  2. Run the 'Receive from PC' (GET) or 'Send to PC' (POST) shortcut.")
-    print("  3. The camera will open automatically: scan the QR Code.")
-    print("\nDone! Your clipboards will be linked and you'll NEVER need to")
-    print("scan this code again.")
+    if is_first_run:
+        print("To permanently connect your phone, follow 3 simple steps:")
+        print("  1. Open the Shortcuts app on your iPhone.")
+        print("  2. Run the 'Receive from PC' (GET) or 'Send to PC' (POST) shortcut.")
+        print("  3. The camera will open automatically: scan the QR Code.")
+        print("\nDone! Your clipboards will be linked and you'll NEVER need to")
+        print("scan this code again.")
+    else:
+        print("Your phone is already paired — clipboard sync is active.")
     print("═"*65 + "\n")
 
     # Start the server
