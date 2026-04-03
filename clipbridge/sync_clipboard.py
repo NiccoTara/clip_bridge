@@ -77,6 +77,10 @@ def sync_verso_iphone():
 
 def main():
     """Start the ClipBridge server."""
+
+    # Make sure CopyQ is up before doing anything else
+    clipboard.ensure_running()
+
     url = get_local_url(PORT)
     print_startup_qr(url, TOKEN)
 

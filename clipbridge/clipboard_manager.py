@@ -1,9 +1,50 @@
 import subprocess
+import shutil
+import time
 import os
 
 
 class ClipboardManager:
     """Handles read/write operations with system clipboard via CopyQ"""
+
+    @staticmethod
+    def ensure_running() -> None:
+        """Ensure CopyQ is installed and its server is responsive, launching it if needed."""
+        if not shutil.which('copyq'):
+            raise RuntimeError(
+                "CopyQ is not installed. Install it using: sudo apt install copyq"
+            )
+
+        # Check if the CopyQ server is already responding
+        try:
+            subprocess.run(
+                ['copyq', 'eval', ''],
+                capture_output=True, timeout=2, check=True,
+            )
+            return  # already running
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
+            pass
+
+        # Start CopyQ in the background (Popen does not block)
+        subprocess.Popen(
+            ['copyq', '--start-server'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        # Wait until the server becomes responsive (up to ~5 s)
+        for _ in range(10):
+            time.sleep(0.5)
+            try:
+                subprocess.run(
+                    ['copyq', 'eval', ''],
+                    capture_output=True, timeout=2, check=True,
+                )
+                return
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
+                continue
+
+        raise RuntimeError("CopyQ was started but is not responding.")
 
     @staticmethod
     def copy_text(text: str) -> bool:
