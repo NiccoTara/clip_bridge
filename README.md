@@ -103,8 +103,10 @@ Every request must include the auth token (embedded in the shortcut URL after th
 - Your PC's firewall might be blocking port 5000
 
 **CopyQ errors**
-- CopyQ must be running for clipboard access to work
-- Test it: `copyq read 0` should print your last copied text
+- ClipBridge automatically starts CopyQ in the background if it's not running.
+- However, if you get clipboard errors, test it manually: 
+   - copyq read 0 should print your last copied text. 
+   - If it's completely stuck, try running copyq in the terminal to see if it reports any system errors
 
 **Want to re-pair? (new QR code)**
 ```bash
