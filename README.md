@@ -69,10 +69,10 @@ Works with text, images, files, URLs — anything you can copy.
 
 ```
 iPhone (Shortcuts)  ←→  Wi-Fi  ←→  Linux PC (ClipBridge)
-                                         ↓
-                                    Flask server on port 5000
-                                         ↓
-                                  CopyQ (system clipboard)
+                          ↓
+               Flask server on port 5000
+                          ↓
+                CopyQ (system clipboard)
 ```
 
 ClipBridge is a small Flask server that exposes two endpoints:
