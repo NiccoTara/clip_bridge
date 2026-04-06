@@ -35,6 +35,32 @@ else
     echo -e "${GREEN}✓ CopyQ found${NC}"
 fi
 
+# Check for avahi-daemon (required for mDNS .local resolution)
+echo -e "${YELLOW}→${NC} Checking for avahi-daemon (mDNS)..."
+if ! command -v avahi-daemon &> /dev/null; then
+    echo -e "${YELLOW}✗ avahi-daemon not found. Installing...${NC}"
+    apt-get update
+    apt-get install -y avahi-daemon
+    if command -v avahi-daemon &> /dev/null; then
+        echo -e "${GREEN}✓ avahi-daemon installed successfully${NC}"
+    else
+        echo -e "${RED}✗ Failed to install avahi-daemon${NC}"
+        exit 1
+    fi
+else
+    echo -e "${GREEN}✓ avahi-daemon found${NC}"
+fi
+
+# Enable and start avahi-daemon so .local names resolve across networks
+echo -e "${YELLOW}→${NC} Enabling avahi-daemon service..."
+systemctl enable avahi-daemon --quiet 2>/dev/null || true
+systemctl start  avahi-daemon 2>/dev/null || true
+if systemctl is-active --quiet avahi-daemon 2>/dev/null; then
+    echo -e "${GREEN}✓ avahi-daemon is running${NC}"
+else
+    echo -e "${YELLOW}⚠ Could not verify avahi-daemon status (may need a reboot)${NC}"
+fi
+
 # Get the directory where the install script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BINARY="${SCRIPT_DIR}/clipbridge"
